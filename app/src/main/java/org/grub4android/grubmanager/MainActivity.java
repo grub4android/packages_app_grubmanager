@@ -7,6 +7,8 @@ import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.melnykov.fab.FloatingActionButton;
+
 import org.grub4android.grubmanager.models.Bootentry;
 
 import java.util.ArrayList;
@@ -55,6 +57,10 @@ public class MainActivity extends ActionBarActivity {
 
         mAdapter = new BootentryAdapter(bootentries);
         mRecyclerView.setAdapter(mAdapter);
+
+        // FAB
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.attachToRecyclerView(mRecyclerView);
     }
 
 
