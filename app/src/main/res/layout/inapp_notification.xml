@@ -37,8 +37,8 @@
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
         android:text="INSTALL"
-        android:textStyle="normal"
         android:textColor="@android:color/white"
-        android:textSize="15sp" />
+        android:textSize="15sp"
+        android:textStyle="normal" />
 
 </RelativeLayout>

@@ -92,6 +92,7 @@ public class MainActivity extends ActionBarActivity {
             }
         };
         drawerLayout.setDrawerListener(actionBarDrawerToggle);
+        drawerLayout.setStatusBarBackgroundColor(getResources().getColor(R.color.primary_dark));
 
         //Set the custom toolbar
         if (toolbar != null) {
