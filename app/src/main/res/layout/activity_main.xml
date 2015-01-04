@@ -1,81 +1,70 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:fab="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
     tools:context=".MainActivity">
 
-
-    <RelativeLayout
+    <!-- The main content view -->
+    <FrameLayout
+        android:id="@+id/content_frame"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        >
 
         <RelativeLayout
-            android:id="@+id/inapp_notification"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:background="#D8453C"
+            android:layout_height="match_parent">
 
-            android:paddingLeft="16dp">
-
-            <TextView
-                android:id="@+id/inapp_notification_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingTop="8dp"
-                android:text="GRUB is not installed!"
-                android:textColor="@android:color/white"
-                android:textSize="17sp"
-                android:textStyle="bold|italic" />
-
-            <TextView
-                android:id="@+id/textPrimary"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/inapp_notification_title"
-                android:text="This is required."
-                android:textColor="@android:color/white"
-                android:textSize="14sp"
-                android:textStyle="italic" />
-
-            <Button
-                android:layout_width="wrap_content"
+            <!-- TOOLBAR -->
+            <include
+                android:id="@+id/toolbar"
+                layout="@layout/toolbar_custom" />
+            <!-- NOTIFICATION -->
+            <include
+                android:id="@+id/inapp_notification"
+                layout="@layout/inapp_notification"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_below="@id/toolbar" />
+            <!-- LIST -->
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/my_recycler_view"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_alignParentRight="true"
-                android:background="@drawable/inapp_notification_button_selector"
-                android:text="INSTALL"
-                android:textColor="@android:color/white"
-                android:textSize="16sp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp"/>
+                android:layout_below="@id/inapp_notification"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp"
+                android:paddingTop="8dp"
+                android:scrollbarStyle="outsideOverlay"
+                android:scrollbars="vertical" />
 
         </RelativeLayout>
 
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/my_recycler_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_below="@id/inapp_notification"
-            android:clipToPadding="false"
-            android:paddingBottom="8dp"
-            android:paddingTop="8dp"
-            android:scrollbarStyle="outsideOverlay"
-            android:scrollbars="vertical" />
-    </RelativeLayout>
+        <!-- FAB -->
+        <com.melnykov.fab.FloatingActionButton
+            android:id="@+id/fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|right"
+            android:layout_margin="16dp"
+            android:src="@drawable/ic_add_white_24dp"
+            fab:fab_colorNormal="@color/primary"
+            fab:fab_colorPressed="@color/primary_dark"
+            fab:fab_colorRipple="@color/primary_dark" />
+    </FrameLayout>
 
-
-    <com.melnykov.fab.FloatingActionButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|right"
-        android:layout_margin="16dp"
-        android:src="@drawable/ic_add_white_24dp"
-        fab:fab_colorNormal="@color/primary"
-        fab:fab_colorPressed="@color/primary_dark"
-        fab:fab_colorRipple="@color/primary_dark" />
-
-</FrameLayout>
+    <!-- The navigation drawer -->
+    <ListView
+        android:id="@+id/left_drawer"
+        android:layout_width="240dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:background="@android:color/white"
+        android:choiceMode="singleChoice"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="0dp" />
+</android.support.v4.widget.DrawerLayout>

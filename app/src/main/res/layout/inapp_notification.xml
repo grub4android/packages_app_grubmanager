@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/inapp_notification"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D8453C"
+    android:paddingLeft="16dp">
+
+    <TextView
+        android:id="@+id/inapp_notification_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="8dp"
+        android:text="GRUB is not installed!"
+        android:textColor="@android:color/white"
+        android:textSize="17sp"
+        android:textStyle="bold|italic" />
+
+    <TextView
+        android:id="@+id/textPrimary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/inapp_notification_title"
+        android:text="This is required."
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:textStyle="italic" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:background="@drawable/inapp_notification_button_selector"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:text="INSTALL"
+        android:textStyle="normal"
+        android:textColor="@android:color/white"
+        android:textSize="15sp" />
+
+</RelativeLayout>
