@@ -1,4 +1,4 @@
-package org.grub4android.grubmanager;
+package org.grub4android.grubmanager.activities;
 
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
@@ -12,6 +12,8 @@ import android.view.View;
 
 import com.melnykov.fab.FloatingActionButton;
 
+import org.grub4android.grubmanager.adapter.BootentryAdapter;
+import org.grub4android.grubmanager.R;
 import org.grub4android.grubmanager.models.Bootentry;
 
 import java.util.ArrayList;

@@ -57,7 +57,7 @@
     </FrameLayout>
 
     <!-- The navigation drawer -->
-    <org.grub4android.grubmanager.ScrimInsetsFrameLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+    <org.grub4android.grubmanager.widget.ScrimInsetsFrameLayout xmlns:app="http://schemas.android.com/apk/res-auto"
         android:id="@+id/left_drawer"
         android:layout_width="240dp"
         android:layout_height="match_parent"

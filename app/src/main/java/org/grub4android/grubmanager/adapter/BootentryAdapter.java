@@ -1,4 +1,4 @@
-package org.grub4android.grubmanager;
+package org.grub4android.grubmanager.adapter;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import org.grub4android.grubmanager.R;
 import org.grub4android.grubmanager.models.Bootentry;
 
 import java.util.List;
@@ -37,6 +38,16 @@ public class BootentryAdapter extends RecyclerView.Adapter<BootentryAdapter.View
         // - replace the contents of the view with that element
         holder.mTextViewPrimary.setText(mDataset.get(position).mTitle);
         holder.mTextViewSecondary.setText(mDataset.get(position).mDesription);
+
+        /*holder.mRootView.setTag(mDataset.get(position));
+        holder.mRootView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Bootentry bootentry = (Bootentry)v.getTag();
+                Intent intent = new Intent(v.getContext(), BootentryActivity.class);
+                v.getContext().startActivity(intent);
+            }
+        });*/
     }
 
     // Return the size of your dataset (invoked by the layout manager)
@@ -52,10 +63,12 @@ public class BootentryAdapter extends RecyclerView.Adapter<BootentryAdapter.View
         // each data item is just a string in this case
         public TextView mTextViewPrimary;
         public TextView mTextViewSecondary;
+        public View mRootView;
 
         public ViewHolder(View v) {
             super(v);
 
+            mRootView = ((ViewGroup)v).getChildAt(0);
             mTextViewPrimary = (TextView) v.findViewById(R.id.textPrimary);
             mTextViewSecondary = (TextView) v.findViewById(R.id.textSecondary);
         }
