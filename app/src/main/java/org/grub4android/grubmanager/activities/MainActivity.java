@@ -1,5 +1,6 @@
 package org.grub4android.grubmanager.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
@@ -9,11 +10,12 @@ import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 
 import com.melnykov.fab.FloatingActionButton;
 
-import org.grub4android.grubmanager.adapter.BootentryAdapter;
 import org.grub4android.grubmanager.R;
+import org.grub4android.grubmanager.adapter.BootentryAdapter;
 import org.grub4android.grubmanager.models.Bootentry;
 
 import java.util.ArrayList;
@@ -23,6 +25,7 @@ public class MainActivity extends ActionBarActivity {
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
+    private Button mNotificationButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +70,16 @@ public class MainActivity extends ActionBarActivity {
         // FAB
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.attachToRecyclerView(mRecyclerView);
+
+        // inapp_notification button
+        mNotificationButton = (Button) findViewById(R.id.inapp_notification_button);
+        mNotificationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, UpdateActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     private void setupToolbar() {

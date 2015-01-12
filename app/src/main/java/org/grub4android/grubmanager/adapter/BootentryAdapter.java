@@ -68,7 +68,7 @@ public class BootentryAdapter extends RecyclerView.Adapter<BootentryAdapter.View
         public ViewHolder(View v) {
             super(v);
 
-            mRootView = ((ViewGroup)v).getChildAt(0);
+            mRootView = ((ViewGroup) v).getChildAt(0);
             mTextViewPrimary = (TextView) v.findViewById(R.id.textPrimary);
             mTextViewSecondary = (TextView) v.findViewById(R.id.textSecondary);
         }
