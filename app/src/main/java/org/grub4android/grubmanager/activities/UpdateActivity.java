@@ -374,7 +374,7 @@ public class UpdateActivity extends ActionBarActivity {
         mUpdateHandler.mDialog.setOnCancelListener(null);
 
         try {
-            RootUtils.installPackage(dir + "/install.sh", mBootPath, dir.getAbsolutePath(), mUpdateHandler.mUpdateBuild.getString("checksum_sha1"), UpdaterClient.mDeviceInfo.getString("lk_installation_partition"), new RootUtils.CommandFinished() {
+            RootUtils.installPackage(UpdateActivity.this, dir + "/install.sh", mBootPath, dir.getAbsolutePath(), mUpdateHandler.mUpdateBuild.getString("checksum_sha1"), UpdaterClient.mDeviceInfo.getString("lk_installation_partition"), new RootUtils.CommandFinished() {
                 @Override
                 public void commandFinished(int exitcode) {
                     try {

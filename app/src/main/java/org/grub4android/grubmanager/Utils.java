@@ -2,6 +2,7 @@ package org.grub4android.grubmanager;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.os.Environment;
 import android.text.format.DateFormat;
 
 import java.io.BufferedReader;
@@ -98,5 +99,24 @@ public class Utils {
         cal.setTimeInMillis(time * 1000);
         String date = DateFormat.format("yyyyMMdd", cal).toString();
         return date;
+    }
+
+    /* Checks if external storage is available for read and write */
+    public static boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
+    /* Checks if external storage is available to at least read */
+    public static boolean isExternalStorageReadable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            return true;
+        }
+        return false;
     }
 }

@@ -1,6 +1,7 @@
 package org.grub4android.grubmanager;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 
 import com.stericson.RootShell.exceptions.RootDeniedException;
@@ -9,6 +10,7 @@ import com.stericson.RootShell.execution.Shell;
 import com.stericson.RootTools.Constants;
 import com.stericson.RootTools.RootTools;
 
+import org.apache.commons.io.FileUtils;
 import org.grub4android.grubmanager.models.MountInfo;
 
 import java.io.File;
@@ -171,7 +173,57 @@ public class RootUtils {
         return RootTools.getShell(root).add(cmd);
     }
 
-    public static Command installPackage(String script, String installDir, String pkgDir, String checksumSHA1, String lkPart, final CommandFinished cb) throws IOException, TimeoutException, RootDeniedException {
+    public static int dd(String source, String destination) {
+        int rc = -1;
+
+        Command command = new Command(0, false,
+                BUSYBOX + " dd if=\"" + source + "\" of=\"" + destination + "\""
+        );
+        try {
+            Shell shell = RootTools.getShell(true);
+            shell.add(command);
+            commandWait(shell, command);
+            rc = command.getExitCode();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return rc;
+    }
+
+    public static boolean backupExists(String name) {
+        File dirExt = Environment.getExternalStoragePublicDirectory("G4ABackup");
+        return RootUtils.exists(dirExt.getAbsolutePath() + "/" + name);
+    }
+
+    public static void doBackup(String filename, String name) throws Exception {
+        // calculate source checksum
+        String sha1sum = RootUtils.sha1sum(filename);
+        if (sha1sum == null) throw new Exception("Can't get source checksum!");
+
+        // backup file
+        File dirExt = Environment.getExternalStoragePublicDirectory("G4ABackup");
+        dirExt.mkdirs();
+        if (RootUtils.dd(filename, dirExt.getAbsolutePath() + "/" + name) != 0)
+            throw new Exception("Can't backup file!");
+
+        // get backup checksum
+        String sha1sum_backup = RootUtils.sha1sum(filename);
+        if (sha1sum_backup == null) throw new Exception("Can't get backup checksum!");
+
+        // verify backup
+        if (!sha1sum.equals(sha1sum_backup))
+            throw new Exception("Checksums do not match!");
+
+        // store checksum
+        FileUtils.writeStringToFile(new File(dirExt.getAbsolutePath() + "/" + name + ".sha1"), sha1sum);
+    }
+
+    public static Command installPackage(Context context, String script, String installDir, String pkgDir, String checksumSHA1, String lkPart, final CommandFinished cb) throws Exception {
+        // backup important files
+        if (!backupExists("lk.img"))
+            doBackup(lkPart, "lk.img");
+
         Command cmd = new Command(0, false,
                 // install LK
                 BUSYBOX + " dd if=\"" + pkgDir + "/lk.img\" of=\"" + lkPart + "\"",
@@ -190,12 +242,6 @@ public class RootUtils {
                 BUSYBOX + " chown -R 0:0 \"" + installDir + "\"",
                 BUSYBOX + " chmod -R 0644 \"" + installDir + "\""
         ) {
-            @Override
-            public void commandOutput(int id, String line) {
-                super.commandOutput(id, line);
-                Log.e("G4A", line);
-            }
-
             @Override
             public void commandCompleted(int id, int exitcode) {
                 super.commandCompleted(id, exitcode);
@@ -253,6 +299,31 @@ public class RootUtils {
         int rc = RootUtils.chmod(cacheFilename, "0777", false);
         if (rc != 0)
             throw new Exception("rc = " + rc);
+    }
+
+    public static String sha1sum(String filename) {
+        int rc = -1;
+        final StringBuilder sum = new StringBuilder();
+
+        Command command = new Command(0, false,
+                BUSYBOX + " sha1sum " + " \"" + filename + "\""
+        ) {
+            @Override
+            public void commandOutput(int id, String line) {
+                super.commandOutput(id, line);
+                sum.append(line);
+            }
+        };
+        try {
+            Shell shell = RootTools.getShell(true);
+            shell.add(command);
+            commandWait(shell, command);
+            rc = command.getExitCode();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return rc == 0 ? sum.toString() : null;
     }
 
     public static interface CommandFinished {
