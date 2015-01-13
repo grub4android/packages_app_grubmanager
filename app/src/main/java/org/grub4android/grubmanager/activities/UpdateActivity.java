@@ -2,6 +2,7 @@ package org.grub4android.grubmanager.activities;
 
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -125,6 +126,9 @@ public class UpdateActivity extends ActionBarActivity {
     }
 
     private void updateUI() {
+        // toolbar2
+        mToolbarSubtitile2.setText(Build.MANUFACTURER + " " + Build.MODEL + " (" + Build.DEVICE + ")");
+
         // install: loading
         mDatasetInstall.mTitle = getString(R.string.install);
         mDatasetInstall.mDescription = getString(R.string.loading);
@@ -170,7 +174,7 @@ public class UpdateActivity extends ActionBarActivity {
                     String installedManifestPath = bootPath + "/manifest.json";
                     if (!RootUtils.exists(installedManifestPath)) {
                         // toolbar1
-                        mToolbarSubtitile1.setText("Installed: -");
+                        mToolbarSubtitile1.setText("-");
 
                         // install: install
                         mDatasetInstall.mTitle = getString(R.string.install);
@@ -212,13 +216,12 @@ public class UpdateActivity extends ActionBarActivity {
 
                         // toolbar1
                         try {
-                            mToolbarSubtitile1.setText("Installed: "
-                                            + Utils.getDate(installedManifest.getLong("timestamp"))
+                            mToolbarSubtitile1.setText(Utils.getDate(installedManifest.getLong("timestamp"))
                                             + "-g" + Long.toHexString(installedManifest.getLong("revision_hash"))
                             );
                         } catch (Exception e) {
                             e.printStackTrace();
-                            mToolbarSubtitile1.setText("Installed: " + getString(R.string.error_occurred));
+                            mToolbarSubtitile1.setText(getString(R.string.error_occurred));
                         }
 
 

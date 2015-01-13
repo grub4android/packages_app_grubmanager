@@ -27,6 +27,7 @@
                 android:layout_marginBottom="16dp"
                 android:layout_marginTop="?actionBarSize">
 
+                <!-- TITLE -->
                 <TextView
                     android:id="@+id/title"
                     android:layout_width="wrap_content"
@@ -36,13 +37,39 @@
                     android:textColor="@android:color/white"
                     android:textSize="24sp" />
 
+                <!-- SUBTITLE1 -->
+                <TextView
+                    android:id="@+id/toolbar_subtitle1_desc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentLeft="true"
+                    android:layout_below="@id/title"
+                    android:layout_marginTop="8dp"
+                    android:text="Installed: "
+                    android:textAppearance="?android:attr/textAppearance"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
+
                 <TextView
                     android:id="@+id/toolbar_subtitle1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
                     android:layout_below="@id/title"
                     android:layout_marginTop="8dp"
-                    android:text="Installed: 2015-01-11"
+                    android:layout_toRightOf="@id/toolbar_subtitle1_desc"
+                    android:textAppearance="?android:attr/textAppearance"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
+
+                <!-- SUBTITLE2 -->
+                <TextView
+                    android:id="@+id/toolbar_subtitle2_desc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentLeft="true"
+                    android:layout_below="@id/toolbar_subtitle1_desc"
+                    android:text="Device: "
                     android:textAppearance="?android:attr/textAppearance"
                     android:textColor="@android:color/white"
                     android:textSize="14sp" />
@@ -51,8 +78,9 @@
                     android:id="@+id/toolbar_subtitle2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_below="@id/toolbar_subtitle1"
-                    android:text="Last checked: 2015-01-11"
+                    android:layout_alignParentRight="true"
+                    android:layout_below="@id/toolbar_subtitle1_desc"
+                    android:layout_toRightOf="@id/toolbar_subtitle2_desc"
                     android:textAppearance="?android:attr/textAppearance"
                     android:textColor="@android:color/white"
                     android:textSize="14sp" />
