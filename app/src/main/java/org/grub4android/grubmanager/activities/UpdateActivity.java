@@ -371,7 +371,7 @@ public class UpdateActivity extends ActionBarActivity {
         mUpdateHandler.mDialog.setOnCancelListener(null);
 
         try {
-            RootUtils.runInstallationScript(dir + "/install.sh", mBootPath, dir.getAbsolutePath(), mUpdateHandler.mUpdateBuild.getString("checksum_sha1"), new RootUtils.CommandFinished() {
+            RootUtils.installPackage(dir + "/install.sh", mBootPath, dir.getAbsolutePath(), mUpdateHandler.mUpdateBuild.getString("checksum_sha1"), UpdaterClient.mDeviceInfo.getString("lk_installation_partition"), new RootUtils.CommandFinished() {
                 @Override
                 public void commandFinished(int exitcode) {
                     try {
@@ -447,7 +447,7 @@ public class UpdateActivity extends ActionBarActivity {
                     if (mDialog != null) mDialog.dismiss();
 
                     // show error
-                    Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred) + exceptionText, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred) + exceptionText, Toast.LENGTH_LONG).show();
 
                     // update UI
                     updateUI();

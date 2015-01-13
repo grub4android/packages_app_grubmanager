@@ -171,13 +171,24 @@ public class RootUtils {
         return RootTools.getShell(root).add(cmd);
     }
 
-    public static Command runInstallationScript(String script, String installDir, String pkgDir, String checksumSHA1, final CommandFinished cb) throws IOException, TimeoutException, RootDeniedException {
+    public static Command installPackage(String script, String installDir, String pkgDir, String checksumSHA1, String lkPart, final CommandFinished cb) throws IOException, TimeoutException, RootDeniedException {
         Command cmd = new Command(0, false,
-                "export INSTALLATION_DIRECTORY=" + installDir,
-                "export PACKAGE_DIRECTORY=" + pkgDir,
-                "export PACKAGE_SHA1=" + checksumSHA1,
-                "export BUSYBOX=" + BUSYBOX,
-                BUSYBOX + " sh \"" + script + "\""
+                // install LK
+                BUSYBOX + " dd if=\"" + pkgDir + "/lk.img\" of=\"" + lkPart + "\"",
+
+                // create bootloader directory
+                BUSYBOX + " mkdir -p \"" + installDir + "\"",
+
+                // copy boot fs
+                BUSYBOX + " cp -RfP " + pkgDir + "/grub_boot_fs/* \"" + installDir + "\"",
+
+                // copy manifest and checksum-file
+                BUSYBOX + " cp \"" + pkgDir + "/manifest.json\" \"" + installDir + "/\"",
+                BUSYBOX + " echo -n " + checksumSHA1 + " > \"" + installDir + "/package.sha1\"",
+
+                // set permissions
+                BUSYBOX + " chown -R 0:0 \"" + installDir + "\"",
+                BUSYBOX + " chmod -R 0644 \"" + installDir + "\""
         ) {
             @Override
             public void commandOutput(int id, String line) {
