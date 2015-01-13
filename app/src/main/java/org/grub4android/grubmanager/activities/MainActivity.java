@@ -15,6 +15,7 @@ import android.widget.Button;
 import com.melnykov.fab.FloatingActionButton;
 
 import org.grub4android.grubmanager.R;
+import org.grub4android.grubmanager.RootUtils;
 import org.grub4android.grubmanager.adapter.BootentryAdapter;
 import org.grub4android.grubmanager.models.Bootentry;
 
@@ -80,6 +81,9 @@ public class MainActivity extends ActionBarActivity {
                 startActivity(intent);
             }
         });
+
+        // init busybox
+        RootUtils.initBusybox(this);
     }
 
     private void setupToolbar() {
@@ -118,7 +122,6 @@ public class MainActivity extends ActionBarActivity {
 
         actionBarDrawerToggle.syncState();
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

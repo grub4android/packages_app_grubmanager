@@ -13,7 +13,7 @@ import java.util.List;
 
 public class TwoLineAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private List<Dataset> mDataset;
+    public List<Dataset> mDataset;
     private OnDatasetItemClickListener mOnDatasetItemClickListener = null;
 
     // Provide a suitable constructor (depends on the kind of dataset)
@@ -77,6 +77,7 @@ public class TwoLineAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     mOnDatasetItemClickListener.onClick(dataset);
             }
         });
+        holder.mRootView.setVisibility(mDataset.get(position).mHidden == false ? View.VISIBLE : View.GONE);
     }
 
     public void onBindViewHolder_Subheader(ViewHolder_Subheader holder, int position) {
@@ -150,6 +151,7 @@ public class TwoLineAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         public String mDescription;
         public ViewType mType;
         public int mId;
+        public boolean mHidden = false;
 
         public Dataset(String title, String description, ViewType type, int id) {
             mTitle = title;

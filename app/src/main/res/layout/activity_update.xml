@@ -37,7 +37,7 @@
                     android:textSize="24sp" />
 
                 <TextView
-                    android:id="@+id/subtitle"
+                    android:id="@+id/toolbar_subtitle1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_below="@id/title"
@@ -48,9 +48,10 @@
                     android:textSize="14sp" />
 
                 <TextView
+                    android:id="@+id/toolbar_subtitle2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_below="@id/subtitle"
+                    android:layout_below="@id/toolbar_subtitle1"
                     android:text="Last checked: 2015-01-11"
                     android:textAppearance="?android:attr/textAppearance"
                     android:textColor="@android:color/white"
