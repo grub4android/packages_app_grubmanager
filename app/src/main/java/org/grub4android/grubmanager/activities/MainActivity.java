@@ -9,8 +9,6 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -143,12 +141,15 @@ public class MainActivity extends ActionBarActivity {
 
         // navigation drawer
         mNavigationDrawer = (ScrimInsetsFrameLayout) findViewById(R.id.left_drawer);
-        mNavigationDrawer.setPadding(0, getStatusBarHeight(), 0, 0);
         mNavRecyclerView = (RecyclerView) findViewById(R.id.navbar_recycler_view);
         mNavRecyclerView.setHasFixedSize(true);
         mNavRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mNavRecyclerView.setAdapter(adapter);
 
+        // fixup padding for transparent statusbar
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mNavigationDrawer.setPadding(0, getStatusBarHeight(), 0, 0);
+        }
 
         // update UI
         updateUI();
