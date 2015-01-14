@@ -219,11 +219,31 @@ public class RootUtils {
         FileUtils.writeStringToFile(new File(dirExt.getAbsolutePath() + "/" + name + ".sha1"), sha1sum);
     }
 
-    public static Command installPackage(Context context, String script, String installDir, String pkgDir, String checksumSHA1, String lkPart, final CommandFinished cb) throws Exception {
-        // backup important files
-        if (!backupExists("lk.img"))
-            doBackup(lkPart, "lk.img");
+    public static void restoreBackup(String name, String filename) throws Exception {
+        // find backup
+        File dirExt = Environment.getExternalStoragePublicDirectory("G4ABackup");
+        String backupFile = dirExt.getAbsolutePath() + "/" + name;
+        String backupFileSHA1 = dirExt.getAbsolutePath() + "/" + name + ".sha1";
+        if (!RootUtils.exists(backupFile) || !RootUtils.exists(backupFileSHA1))
+            throw new Exception("Backup doesn't exist!");
 
+        // calculate backup checksum
+        String sha1sum = RootUtils.sha1sum(backupFile);
+        if (sha1sum == null) throw new Exception("Can't get backup checksum!");
+
+        // verify backup
+        String sha1sum_stored = FileUtils.readFileToString(new File(backupFileSHA1));
+        Log.e("G4A", sha1sum);
+        Log.e("G4A", sha1sum_stored);
+        if (!sha1sum.equals(sha1sum_stored))
+            throw new Exception("Backup file is corrupted! " + sha1sum + "==" + sha1sum_stored);
+
+        // restore file
+        if (RootUtils.dd(backupFile, filename) != 0)
+            throw new Exception("Can't restore file!");
+    }
+
+    public static Command installPackage(Context context, String script, String installDir, String pkgDir, String checksumSHA1, String lkPart, final CommandFinished cb) throws Exception {
         Command cmd = new Command(0, false,
                 // install LK
                 BUSYBOX + " dd if=\"" + pkgDir + "/lk.img\" of=\"" + lkPart + "\"",
@@ -306,7 +326,7 @@ public class RootUtils {
         final StringBuilder sum = new StringBuilder();
 
         Command command = new Command(0, false,
-                BUSYBOX + " sha1sum " + " \"" + filename + "\""
+                BUSYBOX + " sha1sum " + " \"" + filename + "\"  | " + BUSYBOX + " cut -d' ' -f1"
         ) {
             @Override
             public void commandOutput(int id, String line) {

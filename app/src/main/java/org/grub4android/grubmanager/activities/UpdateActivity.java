@@ -1,5 +1,6 @@
 package org.grub4android.grubmanager.activities;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.os.Build;
@@ -21,6 +22,7 @@ import com.loopj.android.http.FileAsyncHttpResponseHandler;
 import com.loopj.android.http.RequestHandle;
 import com.melnykov.fab.FloatingActionButton;
 import com.stericson.RootShell.execution.Command;
+import com.stericson.RootTools.RootTools;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
@@ -42,11 +44,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class UpdateActivity extends ActionBarActivity {
+    public boolean mCurrentlyInstalled = false;
     private RecyclerView mRecyclerSysinfo;
     private TwoLineAdapter mAdapterSysinfo;
     private ArrayList<TwoLineAdapter.Dataset> mAdapter;
     private UpdateHandler mUpdateHandler;
     private String mBootPath;
+    private String mInstalledManifestPath;
     private JSONObject mUpdateBuild = null;
     private TextView mToolbarSubtitile1;
     private TextView mToolbarSubtitile2;
@@ -105,8 +109,14 @@ public class UpdateActivity extends ActionBarActivity {
             public void onClick(TwoLineAdapter.Dataset dataset) {
                 if (dataset == mDatasetInstall && mUpdateBuild != null) {
                     doDownload(mUpdateBuild);
+                } else if (dataset == mDatasetUninstall && UpdaterClient.mDeviceInfo != null) {
+                    new AlertDialog.Builder(UpdateActivity.this).setTitle("Uninstall").setMessage("Are you sure?").setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            doUninstall();
+                        }
+                    }).setNegativeButton(android.R.string.no, null).show();
                 }
-
             }
         });
         mRecyclerSysinfo.setAdapter(mAdapterSysinfo);
@@ -171,8 +181,10 @@ public class UpdateActivity extends ActionBarActivity {
 
                     // get manifest
                     String bootPath = mBootPath = mountPoint + "/" + UpdaterClient.mDeviceInfo.getString("grub_boot_path_prefix");
-                    String installedManifestPath = bootPath + "/manifest.json";
-                    if (!RootUtils.exists(installedManifestPath)) {
+                    mInstalledManifestPath = bootPath + "/manifest.json";
+                    if (!RootUtils.exists(mInstalledManifestPath)) {
+                        mCurrentlyInstalled = false;
+
                         // toolbar1
                         mToolbarSubtitile1.setText("-");
 
@@ -189,6 +201,8 @@ public class UpdateActivity extends ActionBarActivity {
                         // MULTIBOOT
                         mDatasetMultiboot.mDescription = getString(R.string.not_installed);
                     } else {
+                        mCurrentlyInstalled = true;
+
                         // copy checksum to cache
                         String cachedChecksumPath = getCacheDir() + "/installed_package.sha1";
                         RootUtils.copyToCache(bootPath + "/package.sha1", cachedChecksumPath);
@@ -206,7 +220,7 @@ public class UpdateActivity extends ActionBarActivity {
 
                         // copy manifest to cache
                         String cachedManifestPath = getCacheDir() + "/installed_manifest.json";
-                        RootUtils.copyToCache(installedManifestPath, cachedManifestPath);
+                        RootUtils.copyToCache(mInstalledManifestPath, cachedManifestPath);
                         File cachedManifestFile = new File(cachedManifestPath);
 
                         // read manifest from cache
@@ -263,6 +277,31 @@ public class UpdateActivity extends ActionBarActivity {
                 }
             }
         }, true);
+    }
+
+    private void doUninstall() {
+        // create dialog
+        mUpdateHandler.mDialog = ProgressDialog.show(UpdateActivity.this, null, null, true, true);
+        mUpdateHandler.mDialog.setMessage("Uninstalling");
+        mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_SET_CANCABLE, false).sendToTarget();
+        mUpdateHandler.mDialog.setOnCancelListener(null);
+
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    // restore backups
+                    RootUtils.restoreBackup("lk.img", UpdaterClient.mDeviceInfo.getString("lk_installation_partition"));
+
+                    // delete manifest
+                    RootTools.deleteFileOrDirectory(mBootPath, false);
+
+                    mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_FINISH).sendToTarget();
+                } catch (Exception e) {
+                    mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_EXCEPTION, e).sendToTarget();
+                }
+            }
+        }.start();
     }
 
     private void doDownload(final JSONObject updateBuild) {
@@ -374,7 +413,14 @@ public class UpdateActivity extends ActionBarActivity {
         mUpdateHandler.mDialog.setOnCancelListener(null);
 
         try {
-            RootUtils.installPackage(UpdateActivity.this, dir + "/install.sh", mBootPath, dir.getAbsolutePath(), mUpdateHandler.mUpdateBuild.getString("checksum_sha1"), UpdaterClient.mDeviceInfo.getString("lk_installation_partition"), new RootUtils.CommandFinished() {
+            String lkPart = UpdaterClient.mDeviceInfo.getString("lk_installation_partition");
+
+            // backup important files
+            if (!RootUtils.backupExists("lk.img") || !mCurrentlyInstalled)
+                RootUtils.doBackup(lkPart, "lk.img");
+
+            // install package
+            RootUtils.installPackage(UpdateActivity.this, dir + "/install.sh", mBootPath, dir.getAbsolutePath(), mUpdateHandler.mUpdateBuild.getString("checksum_sha1"), lkPart, new RootUtils.CommandFinished() {
                 @Override
                 public void commandFinished(int exitcode) {
                     try {
