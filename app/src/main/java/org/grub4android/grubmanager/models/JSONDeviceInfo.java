@@ -48,6 +48,14 @@ public class JSONDeviceInfo {
     public JSONBuild getLatestBuild() throws JSONException {
         // set update info
         JSONArray builds = (JSONArray) mDeviceInfo.get("builds");
-        return new JSONBuild((JSONObject) builds.get(0));
+
+        JSONObject build = null;
+        for (int i = 0; i < builds.length(); i++) {
+            JSONObject tmp = (JSONObject) builds.get(i);
+
+            if (build == null || tmp.getLong("timestamp") > build.getLong("timestamp"))
+                build = tmp;
+        }
+        return new JSONBuild(build);
     }
 }
