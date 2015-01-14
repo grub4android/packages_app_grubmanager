@@ -154,8 +154,10 @@ public class UpdateActivity extends ActionBarActivity {
         UpdaterClient.fetchData(new UpdaterClient.RequestDoneCallback() {
             @Override
             public void onRequestDone(boolean success) {
-                if (!success)
+                if (!success) {
                     Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred), Toast.LENGTH_LONG).show();
+                    return;
+                }
 
                 // INSTALL
                 try {
