@@ -1,10 +1,13 @@
 package org.grub4android.grubmanager;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.AssetManager;
 import android.text.format.DateFormat;
 
 import org.apache.commons.io.FileUtils;
+import org.grub4android.grubmanager.activities.UpdateActivity;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,4 +45,19 @@ public class Utils {
         String date = DateFormat.format("yyyyMMdd", cal).toString();
         return date;
     }
+
+    public static void runOnUiThread(final Activity a, final long delay, final Runnable r) {
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                }
+
+                a.runOnUiThread(r);
+            }
+        }.start();
+    }
+
 }

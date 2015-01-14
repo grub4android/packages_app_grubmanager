@@ -61,13 +61,22 @@
         android:id="@+id/left_drawer"
         android:layout_width="240dp"
         android:layout_height="match_parent"
-        android:layout_gravity="start"
+        android:layout_gravity="left|start"
         android:background="@android:color/white"
         android:choiceMode="singleChoice"
         android:divider="@android:color/transparent"
         android:dividerHeight="0dp"
         android:elevation="10dp"
         android:fitsSystemWindows="true"
-        app:insetForeground="#4000" />
+        app:insetForeground="#4000">
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/navbar_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbars="vertical" />
+    </org.grub4android.grubmanager.widget.ScrimInsetsFrameLayout>
 
 </android.support.v4.widget.DrawerLayout>
