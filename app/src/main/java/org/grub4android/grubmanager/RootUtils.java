@@ -11,6 +11,7 @@ import com.stericson.RootTools.Constants;
 import com.stericson.RootTools.RootTools;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.grub4android.grubmanager.models.MountInfo;
 
 import java.io.File;
@@ -72,6 +73,120 @@ public class RootUtils {
             }
 
         }
+    }
+
+    // COMMAND WRAPPERS
+
+    public static Command unzip(String filename, String dir, final CommandFinished cb, boolean root) throws IOException, TimeoutException, RootDeniedException {
+        Command cmd = new Command(0, false,
+                BUSYBOX + " unzip \"" + filename + "\" -d \"" + dir + "\""
+        ) {
+            @Override
+            public void commandCompleted(int id, int exitcode) {
+                super.commandCompleted(id, exitcode);
+                if (cb != null) cb.commandFinished(exitcode);
+            }
+
+            @Override
+            public void commandTerminated(int id, String reason) {
+                super.commandTerminated(id, reason);
+                if (cb != null) cb.commandFinished(-1);
+            }
+        };
+        return RootTools.getShell(root).add(cmd);
+    }
+
+    public static int dd(String source, String destination) {
+        int rc = -1;
+
+        Command command = new Command(0, false,
+                BUSYBOX + " dd if=\"" + source + "\" of=\"" + destination + "\""
+        );
+        try {
+            Shell shell = RootTools.getShell(true);
+            shell.add(command);
+            commandWait(shell, command);
+            rc = command.getExitCode();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return rc;
+    }
+
+    public static int chmod(String filename, String mode, boolean recursive) {
+        int rc = -1;
+
+        Command command = new Command(0, false,
+                BUSYBOX + " chmod " + (recursive ? "-R " : "") + mode + " \"" + filename + "\""
+        );
+        try {
+            Shell shell = RootTools.getShell(true);
+            shell.add(command);
+            commandWait(shell, command);
+            rc = command.getExitCode();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return rc;
+    }
+
+    public static String sha1sum(String filename) {
+        int rc = -1;
+        final StringBuilder sum = new StringBuilder();
+
+        Command command = new Command(0, false,
+                BUSYBOX + " sha1sum " + " \"" + filename + "\"  | " + BUSYBOX + " cut -d' ' -f1"
+        ) {
+            @Override
+            public void commandOutput(int id, String line) {
+                super.commandOutput(id, line);
+                sum.append(line);
+            }
+        };
+        try {
+            Shell shell = RootTools.getShell(true);
+            shell.add(command);
+            commandWait(shell, command);
+            rc = command.getExitCode();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return rc == 0 ? sum.toString() : null;
+    }
+
+    public static boolean exists(String filename) {
+        boolean rc = false;
+
+        Command command = new Command(0, false,
+                BUSYBOX + " ls -l \"" + filename + "\""
+        );
+        try {
+            Shell shell = RootTools.getShell(true);
+            shell.add(command);
+            commandWait(shell, command);
+            rc = command.getExitCode() == 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return rc;
+    }
+
+    public static void copyToCache(String filename, String cacheFilename) throws Exception {
+        if (!RootTools.copyFile(filename, cacheFilename, false, false))
+            throw new Exception("Couldn't copy " + filename + " to " + cacheFilename);
+        int rc = RootUtils.chmod(cacheFilename, "0777", false);
+        if (rc != 0)
+            throw new Exception("rc = " + rc);
+    }
+
+    public static String copyToCache(Context context, String filename) throws Exception {
+        String cachFile = context.getCacheDir() + "/copycache__" + FilenameUtils.getName(filename);
+        copyToCache(filename, cachFile);
+        return cachFile;
     }
 
     public static int[] getBootloaderPartMajorMinor(String name) {
@@ -154,42 +269,7 @@ public class RootUtils {
         }
     }
 
-    public static Command unzip(String filename, String dir, final CommandFinished cb, boolean root) throws IOException, TimeoutException, RootDeniedException {
-        Command cmd = new Command(0, false,
-                BUSYBOX + " unzip \"" + filename + "\" -d \"" + dir + "\""
-        ) {
-            @Override
-            public void commandCompleted(int id, int exitcode) {
-                super.commandCompleted(id, exitcode);
-                if (cb != null) cb.commandFinished(exitcode);
-            }
-
-            @Override
-            public void commandTerminated(int id, String reason) {
-                super.commandTerminated(id, reason);
-                if (cb != null) cb.commandFinished(-1);
-            }
-        };
-        return RootTools.getShell(root).add(cmd);
-    }
-
-    public static int dd(String source, String destination) {
-        int rc = -1;
-
-        Command command = new Command(0, false,
-                BUSYBOX + " dd if=\"" + source + "\" of=\"" + destination + "\""
-        );
-        try {
-            Shell shell = RootTools.getShell(true);
-            shell.add(command);
-            commandWait(shell, command);
-            rc = command.getExitCode();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return rc;
-    }
+    // BACKUPS
 
     public static boolean backupExists(String name) {
         File dirExt = Environment.getExternalStoragePublicDirectory("G4ABackup");
@@ -275,75 +355,6 @@ public class RootUtils {
             }
         };
         return RootTools.getShell(true).add(cmd);
-    }
-
-    public static int chmod(String filename, String mode, boolean recursive) {
-        int rc = -1;
-
-        Command command = new Command(0, false,
-                BUSYBOX + " chmod " + (recursive ? "-R " : "") + mode + " \"" + filename + "\""
-        );
-        try {
-            Shell shell = RootTools.getShell(true);
-            shell.add(command);
-            commandWait(shell, command);
-            rc = command.getExitCode();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return rc;
-    }
-
-    public static boolean exists(String filename) {
-        boolean rc = false;
-
-        Command command = new Command(0, false,
-                BUSYBOX + " ls -l \"" + filename + "\""
-        );
-        try {
-            Shell shell = RootTools.getShell(true);
-            shell.add(command);
-            commandWait(shell, command);
-            rc = command.getExitCode() == 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return rc;
-    }
-
-    public static void copyToCache(String filename, String cacheFilename) throws Exception {
-        if (!RootTools.copyFile(filename, cacheFilename, false, false))
-            throw new Exception("Couldn't read file");
-        int rc = RootUtils.chmod(cacheFilename, "0777", false);
-        if (rc != 0)
-            throw new Exception("rc = " + rc);
-    }
-
-    public static String sha1sum(String filename) {
-        int rc = -1;
-        final StringBuilder sum = new StringBuilder();
-
-        Command command = new Command(0, false,
-                BUSYBOX + " sha1sum " + " \"" + filename + "\"  | " + BUSYBOX + " cut -d' ' -f1"
-        ) {
-            @Override
-            public void commandOutput(int id, String line) {
-                super.commandOutput(id, line);
-                sum.append(line);
-            }
-        };
-        try {
-            Shell shell = RootTools.getShell(true);
-            shell.add(command);
-            commandWait(shell, command);
-            rc = command.getExitCode();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return rc == 0 ? sum.toString() : null;
     }
 
     public static interface CommandFinished {

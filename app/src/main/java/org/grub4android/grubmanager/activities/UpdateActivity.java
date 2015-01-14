@@ -11,7 +11,6 @@ import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -32,9 +31,10 @@ import org.grub4android.grubmanager.R;
 import org.grub4android.grubmanager.RootUtils;
 import org.grub4android.grubmanager.Utils;
 import org.grub4android.grubmanager.adapter.TwoLineAdapter;
-import org.grub4android.grubmanager.models.MountInfo;
+import org.grub4android.grubmanager.models.JSONBuild;
+import org.grub4android.grubmanager.models.JSONDeviceInfo;
+import org.grub4android.grubmanager.models.JSONManifest;
 import org.grub4android.grubmanager.updater.UpdaterClient;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -42,6 +42,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class UpdateActivity extends ActionBarActivity {
     public boolean mCurrentlyInstalled = false;
@@ -49,9 +50,7 @@ public class UpdateActivity extends ActionBarActivity {
     private TwoLineAdapter mAdapterSysinfo;
     private ArrayList<TwoLineAdapter.Dataset> mAdapter;
     private UpdateHandler mUpdateHandler;
-    private String mBootPath;
-    private String mInstalledManifestPath;
-    private JSONObject mUpdateBuild = null;
+    private JSONBuild mUpdateBuild = null;
     private TextView mToolbarSubtitile1;
     private TextView mToolbarSubtitile2;
 
@@ -62,10 +61,15 @@ public class UpdateActivity extends ActionBarActivity {
     private TwoLineAdapter.Dataset mDatasetLK;
     private TwoLineAdapter.Dataset mDatasetMultiboot;
 
+    private JSONDeviceInfo mDeviceInfo;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_update);
+
+        // init busybox
+        RootUtils.initBusybox(this);
 
         // get views
         mToolbarSubtitile1 = (TextView) findViewById(R.id.toolbar_subtitle1);
@@ -81,18 +85,18 @@ public class UpdateActivity extends ActionBarActivity {
 
         // datasets
         ArrayList<TwoLineAdapter.Dataset> dataset = new ArrayList<>();
-        mDatasetInstall = new TwoLineAdapter.Dataset(getString(R.string.install), getString(R.string.loading), TwoLineAdapter.ViewType.TYPE_ITEM, android.R.id.button1);
-        mDatasetChangelog = new TwoLineAdapter.Dataset("Changelog", "See what's new in this version", TwoLineAdapter.ViewType.TYPE_ITEM, android.R.id.button2);
-        mDatasetUninstall = new TwoLineAdapter.Dataset("Uninstall", "Revert to original bootloader", TwoLineAdapter.ViewType.TYPE_ITEM, android.R.id.button3);
-        mDatasetGRUB = new TwoLineAdapter.Dataset("GRUB", "2.02~beta2-8d4abea", TwoLineAdapter.ViewType.TYPE_ITEM, 0);
-        mDatasetLK = new TwoLineAdapter.Dataset("LK", "0.5-a76337b", TwoLineAdapter.ViewType.TYPE_ITEM, 0);
-        mDatasetMultiboot = new TwoLineAdapter.Dataset("Multiboot", "0.1-6791079", TwoLineAdapter.ViewType.TYPE_ITEM, 0);
+        mDatasetInstall = new TwoLineAdapter.Dataset(R.string.install, R.string.loading, TwoLineAdapter.ViewType.TYPE_ITEM, android.R.id.button1);
+        mDatasetChangelog = new TwoLineAdapter.Dataset(R.string.changelog, R.string.changelog_description, TwoLineAdapter.ViewType.TYPE_ITEM, android.R.id.button2);
+        mDatasetUninstall = new TwoLineAdapter.Dataset(R.string.uninstall, R.string.uninstall_description, TwoLineAdapter.ViewType.TYPE_ITEM, android.R.id.button3);
+        mDatasetGRUB = new TwoLineAdapter.Dataset(R.string.grub, R.string.not_installed, TwoLineAdapter.ViewType.TYPE_ITEM, 0);
+        mDatasetLK = new TwoLineAdapter.Dataset(R.string.lk, R.string.not_installed, TwoLineAdapter.ViewType.TYPE_ITEM, 0);
+        mDatasetMultiboot = new TwoLineAdapter.Dataset(R.string.multiboot, R.string.not_installed, TwoLineAdapter.ViewType.TYPE_ITEM, 0);
 
-        dataset.add(new TwoLineAdapter.Dataset("Setup", null, TwoLineAdapter.ViewType.TYPE_SUBHEADER, 0));
+        dataset.add(new TwoLineAdapter.Dataset(R.string.setup, 0, TwoLineAdapter.ViewType.TYPE_SUBHEADER, 0));
         dataset.add(mDatasetInstall);
         dataset.add(mDatasetChangelog);
         dataset.add(mDatasetUninstall);
-        dataset.add(new TwoLineAdapter.Dataset("System info", null, TwoLineAdapter.ViewType.TYPE_SUBHEADER, 0));
+        dataset.add(new TwoLineAdapter.Dataset(R.string.system_info, 0, TwoLineAdapter.ViewType.TYPE_SUBHEADER, 0));
         dataset.add(mDatasetGRUB);
         dataset.add(mDatasetLK);
         dataset.add(mDatasetMultiboot);
@@ -109,7 +113,7 @@ public class UpdateActivity extends ActionBarActivity {
             public void onClick(TwoLineAdapter.Dataset dataset) {
                 if (dataset == mDatasetInstall && mUpdateBuild != null) {
                     doDownload(mUpdateBuild);
-                } else if (dataset == mDatasetUninstall && UpdaterClient.mDeviceInfo != null) {
+                } else if (dataset == mDatasetUninstall && mDeviceInfo != null) {
                     new AlertDialog.Builder(UpdateActivity.this).setTitle("Uninstall").setMessage("Are you sure?").setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -121,6 +125,7 @@ public class UpdateActivity extends ActionBarActivity {
         });
         mRecyclerSysinfo.setAdapter(mAdapterSysinfo);
 
+        // updateHandler
         mUpdateHandler = new UpdateHandler(Looper.getMainLooper());
 
         // FAB
@@ -128,11 +133,127 @@ public class UpdateActivity extends ActionBarActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                UpdaterClient.clearCache();
                 updateUI();
             }
         });
 
+        // update UI
         updateUI();
+    }
+
+    private void updateUI_loadDeviceInfo() {
+        UpdaterClient.getDeviceInfo(this, new UpdaterClient.DeviceInfoReceivedCallback() {
+            @Override
+            public void onDeviceInfoReceived(JSONDeviceInfo deviceInfo, Exception eUC) {
+                // check for exception
+                if (eUC != null) {
+                    Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred) + ": " + eUC.getMessage(), Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                // check device info
+                mDeviceInfo = deviceInfo;
+                if (deviceInfo == null) {
+                    Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred), Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                try {
+                    String mountPoint = deviceInfo.getBootloaderMountpoint(false);
+                    String bootPath = mountPoint + "/" + mDeviceInfo.getBootPath();
+                    String manifestPath = bootPath + "/manifest.json";
+
+                    // get latest build
+                    mUpdateBuild = deviceInfo.getLatestBuild();
+
+                    // set install description
+                    mDatasetInstall.setDescription(mUpdateBuild.getFilename());
+
+                    if (!RootUtils.exists(manifestPath)) {
+                        mCurrentlyInstalled = false;
+
+                        // subtitle1
+                        mToolbarSubtitile1.setText("-");
+
+                        // install: install
+                        mDatasetInstall.setTitle(R.string.install);
+
+                        // hide uninstall button
+                        mDatasetUninstall.mHidden = true;
+
+                        // GRUB
+                        mDatasetGRUB.setDescription(R.string.not_installed);
+                        // LK
+                        mDatasetLK.setDescription(R.string.not_installed);
+                        // MULTIBOOT
+                        mDatasetMultiboot.setDescription(R.string.not_installed);
+                    } else {
+                        mCurrentlyInstalled = true;
+
+                        // read package checksum
+                        String sha1 = FileUtils.readFileToString(new File(RootUtils.copyToCache(UpdateActivity.this, bootPath + "/package.sha1"))).trim();
+
+                        // set install title
+                        if (!sha1.equals(mUpdateBuild.getSHA1())) {
+                            // update
+                            mDatasetInstall.setTitle(R.string.update);
+                        } else {
+                            // reinstall
+                            mDatasetInstall.setTitle(R.string.reinstall);
+                        }
+
+                        // read manifest
+                        File cachedManifestFile = new File(RootUtils.copyToCache(UpdateActivity.this, manifestPath));
+                        JSONManifest installedManifest = new JSONManifest(new JSONObject(FileUtils.readFileToString(cachedManifestFile)));
+
+                        // subtitle1
+                        try {
+                            mToolbarSubtitile1.setText(
+                                    Utils.getDate(installedManifest.getTimeStamp())
+                                            + "-g" + Long.toHexString(installedManifest.getRevisionHash())
+                            );
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            mToolbarSubtitile1.setText(R.string.error_occurred);
+                        }
+
+                        // show uninstall button
+                        mDatasetUninstall.mHidden = false;
+
+                        // GRUB
+                        try {
+                            mDatasetGRUB.setDescription(installedManifest.getGRUBVersion());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            mDatasetGRUB.setDescription(R.string.error_occurred);
+                        }
+
+                        // LK
+                        try {
+                            mDatasetLK.setDescription(installedManifest.getLKVersion());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            mDatasetLK.setDescription(R.string.error_occurred);
+                        }
+
+                        // MULTIBOOT
+                        try {
+                            mDatasetMultiboot.setDescription(installedManifest.getMultibootVersion());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            mDatasetMultiboot.setDescription(getString(R.string.error_occurred));
+                        }
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred) + ": " + e.getMessage(), Toast.LENGTH_LONG).show();
+                } finally {
+                    mAdapterSysinfo.notifyDataSetChanged();
+                }
+            }
+        });
     }
 
     private void updateUI() {
@@ -140,145 +261,41 @@ public class UpdateActivity extends ActionBarActivity {
         mToolbarSubtitile2.setText(Build.MANUFACTURER + " " + Build.MODEL + " (" + Build.DEVICE + ")");
 
         // install: loading
-        mDatasetInstall.mTitle = getString(R.string.install);
-        mDatasetInstall.mDescription = getString(R.string.loading);
+        mDatasetInstall.setTitle(R.string.install);
+        mDatasetInstall.setDescription(R.string.loading);
 
-        // uninstall: disabled
+        // uninstall: hidden
+        mDatasetUninstall.mHidden = true;
 
         // sysinfo: loading
-        mDatasetGRUB.mDescription = getString(R.string.loading);
-        mDatasetLK.mDescription = getString(R.string.loading);
-        mDatasetMultiboot.mDescription = getString(R.string.loading);
+        mDatasetGRUB.setDescription(R.string.loading);
+        mDatasetLK.setDescription(R.string.loading);
+        mDatasetMultiboot.setDescription(R.string.loading);
 
-        // fetch all data
-        UpdaterClient.fetchData(new UpdaterClient.RequestDoneCallback() {
+        // notify
+        mAdapterSysinfo.notifyDataSetChanged();
+
+        UpdaterClient.getDeviceList(this, new UpdaterClient.DeviceListReceivedCallback() {
             @Override
-            public void onRequestDone(boolean success) {
-                if (!success) {
-                    Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred), Toast.LENGTH_LONG).show();
+            public void onDeviceListReceived(List<String> devices, Exception eUC) {
+                // check for exception
+                if (eUC != null) {
+                    Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred) + ": " + eUC.getMessage(), Toast.LENGTH_LONG).show();
                     return;
                 }
 
-                // INSTALL
-                try {
-                    // set update info
-                    JSONArray builds = (JSONArray) UpdaterClient.mDeviceInfo.get("builds");
-                    mUpdateBuild = (JSONObject) builds.get(0); // TODO: get latest build, not first
-                    mDatasetInstall.mDescription = mUpdateBuild.getString("filename");
-
-                    // get boot partition mountpoint
-                    String mountPoint = null;
-                    int[] majmin = RootUtils.getBootloaderPartMajorMinor(UpdaterClient.mDeviceInfo.getString("grub_boot_partition_name"));
-                    ArrayList<MountInfo> mountInfo = RootUtils.getMountInfo();
-                    for (MountInfo i : mountInfo) {
-                        if (i.getMajor() == majmin[0] && i.getMinor() == majmin[1] && i.getRoot().equals("/")) {
-                            mountPoint = i.getMountPoint();
-                            break;
-                        }
-                    }
-                    if (mountPoint == null) {
-                        Toast.makeText(UpdateActivity.this, "We need to mount grubPart!", Toast.LENGTH_SHORT).show();
-                        throw new Exception();
-                    }
-
-                    // get manifest
-                    String bootPath = mBootPath = mountPoint + "/" + UpdaterClient.mDeviceInfo.getString("grub_boot_path_prefix");
-                    mInstalledManifestPath = bootPath + "/manifest.json";
-                    if (!RootUtils.exists(mInstalledManifestPath)) {
-                        mCurrentlyInstalled = false;
-
-                        // toolbar1
-                        mToolbarSubtitile1.setText("-");
-
-                        // install: install
-                        mDatasetInstall.mTitle = getString(R.string.install);
-
-                        // hide uninstall button
-                        mDatasetUninstall.mHidden = true;
-
-                        // GRUB
-                        mDatasetGRUB.mDescription = getString(R.string.not_installed);
-                        // LK
-                        mDatasetLK.mDescription = getString(R.string.not_installed);
-                        // MULTIBOOT
-                        mDatasetMultiboot.mDescription = getString(R.string.not_installed);
-                    } else {
-                        mCurrentlyInstalled = true;
-
-                        // copy checksum to cache
-                        String cachedChecksumPath = getCacheDir() + "/installed_package.sha1";
-                        RootUtils.copyToCache(bootPath + "/package.sha1", cachedChecksumPath);
-                        String sha1 = Utils.getStringFromFile(new File(cachedChecksumPath)).trim();
-
-                        Log.e("G4A", sha1 + "==" + mUpdateBuild.getString("checksum_sha1"));
-                        // set title
-                        if (!sha1.equals(mUpdateBuild.getString("checksum_sha1"))) {
-                            // install: update
-                            mDatasetInstall.mTitle = getString(R.string.update);
-                        } else {
-                            // install: reinstall
-                            mDatasetInstall.mTitle = "Reinstall";
-                        }
-
-                        // copy manifest to cache
-                        String cachedManifestPath = getCacheDir() + "/installed_manifest.json";
-                        RootUtils.copyToCache(mInstalledManifestPath, cachedManifestPath);
-                        File cachedManifestFile = new File(cachedManifestPath);
-
-                        // read manifest from cache
-                        JSONObject installedManifest = new JSONObject(Utils.getStringFromFile(cachedManifestFile));
-                        cachedManifestFile.delete();
-                        JSONObject versions = (JSONObject) installedManifest.get("versions");
-
-                        // toolbar1
-                        try {
-                            mToolbarSubtitile1.setText(Utils.getDate(installedManifest.getLong("timestamp"))
-                                            + "-g" + Long.toHexString(installedManifest.getLong("revision_hash"))
-                            );
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            mToolbarSubtitile1.setText(getString(R.string.error_occurred));
-                        }
-
-
-                        // show uninstall button
-                        mDatasetUninstall.mHidden = false;
-
-                        // GRUB
-                        try {
-                            mDatasetGRUB.mDescription = versions.getString("grub");
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            mDatasetGRUB.mDescription = getString(R.string.error_occurred);
-                        }
-
-                        // LK
-                        try {
-                            mDatasetLK.mDescription = versions.getString("lk");
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            mDatasetLK.mDescription = getString(R.string.error_occurred);
-                        }
-
-                        // MULTIBOOT
-                        try {
-                            mDatasetMultiboot.mDescription = versions.getString("multiboot");
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            mDatasetMultiboot.mDescription = getString(R.string.error_occurred);
-                        }
-                    }
-
-                } catch (Exception e) {
-                    // install: error
-                    e.printStackTrace();
-                    mDatasetInstall.mTitle = getString(R.string.install);
-                    mDatasetInstall.mDescription = getString(R.string.error_occurred);
-                } finally {
-                    mAdapterSysinfo.notifyDataSetChanged();
+                // check device info
+                if (devices == null || !devices.contains(Build.DEVICE)) {
+                    Toast.makeText(UpdateActivity.this, R.string.device_not_supported, Toast.LENGTH_LONG).show();
+                    mRecyclerSysinfo.setVisibility(View.GONE);
+                    return;
                 }
+                mRecyclerSysinfo.setVisibility(View.VISIBLE);
+
+                // load deviceinfo
+                updateUI_loadDeviceInfo();
             }
-        }, true);
+        });
     }
 
     private void doUninstall() {
@@ -293,10 +310,10 @@ public class UpdateActivity extends ActionBarActivity {
             public void run() {
                 try {
                     // restore backups
-                    RootUtils.restoreBackup("lk.img", UpdaterClient.mDeviceInfo.getString("lk_installation_partition"));
+                    RootUtils.restoreBackup("lk.img", mDeviceInfo.mDeviceInfo.getString("lk_installation_partition"));
 
                     // delete manifest
-                    RootTools.deleteFileOrDirectory(mBootPath, false);
+                    RootTools.deleteFileOrDirectory(mDeviceInfo.getAbsoluteBootPath(true), false);
 
                     mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_FINISH).sendToTarget();
                 } catch (Exception e) {
@@ -306,18 +323,22 @@ public class UpdateActivity extends ActionBarActivity {
         }.start();
     }
 
-    private void doDownload(final JSONObject updateBuild) {
+    private void doDownload(final JSONBuild updateBuild) {
         // get filename
         try {
-            mUpdateHandler.mFilename = updateBuild.getString("filename");
+            mUpdateHandler.mFilename = updateBuild.getFilename();
         } catch (JSONException e) {
             mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_EXCEPTION, null).sendToTarget();
             return;
         }
 
+        if (mUpdateHandler.mIsRunning)
+            return;
+
         // create dialog
+        mUpdateHandler.mIsRunning = true;
         mUpdateHandler.mDialog = ProgressDialog.show(UpdateActivity.this, null, null, true, true);
-        mUpdateHandler.mDialog.setMessage("Downloading " + mUpdateHandler.mFilename);
+        mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_SETTEXT, "\"Downloading " + mUpdateHandler.mFilename).sendToTarget();
         mUpdateHandler.mUpdateBuild = updateBuild;
 
         // start download
@@ -332,11 +353,11 @@ public class UpdateActivity extends ActionBarActivity {
                     char sha1Chars[] = Hex.encodeHex(data);
                     String sha1 = String.valueOf(sha1Chars);
 
-                    if (!sha1.equals(updateBuild.getString("checksum_sha1"))) {
+                    if (!sha1.equals(updateBuild.getSHA1())) {
                         throw new Exception("Invalid checksum");
                     }
                 } catch (Exception e) {
-                    mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_EXCEPTION, null).sendToTarget();
+                    mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_EXCEPTION, e).sendToTarget();
                     return;
                 }
 
@@ -346,7 +367,7 @@ public class UpdateActivity extends ActionBarActivity {
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, File file) {
-                mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_EXCEPTION, null).sendToTarget();
+                mUpdateHandler.obtainMessage(UpdateHandler.MESSAGE_EXCEPTION, new Exception("HTTP-Statuscode: " + statusCode)).sendToTarget();
             }
         });
 
@@ -415,14 +436,14 @@ public class UpdateActivity extends ActionBarActivity {
         mUpdateHandler.mDialog.setOnCancelListener(null);
 
         try {
-            String lkPart = UpdaterClient.mDeviceInfo.getString("lk_installation_partition");
+            String lkPart = mDeviceInfo.mDeviceInfo.getString("lk_installation_partition");
 
             // backup important files
             if (!RootUtils.backupExists("lk.img") || !mCurrentlyInstalled)
                 RootUtils.doBackup(lkPart, "lk.img");
 
             // install package
-            RootUtils.installPackage(UpdateActivity.this, dir + "/install.sh", mBootPath, dir.getAbsolutePath(), mUpdateHandler.mUpdateBuild.getString("checksum_sha1"), lkPart, new RootUtils.CommandFinished() {
+            RootUtils.installPackage(UpdateActivity.this, dir + "/install.sh", mDeviceInfo.getAbsoluteBootPath(true), dir.getAbsolutePath(), mUpdateHandler.mUpdateBuild.getSHA1(), lkPart, new RootUtils.CommandFinished() {
                 @Override
                 public void commandFinished(int exitcode) {
                     try {
@@ -474,8 +495,10 @@ public class UpdateActivity extends ActionBarActivity {
         public static final int MESSAGE_SET_CANCABLE = 3;
         public static final int MESSAGE_FINISH = 4;
         public ProgressDialog mDialog = null;
-        public JSONObject mUpdateBuild = null;
+        public JSONBuild mUpdateBuild = null;
         public String mFilename = null;
+
+        public boolean mIsRunning = false;
 
         public UpdateHandler(Looper looper) {
             super(looper);
@@ -500,6 +523,8 @@ public class UpdateActivity extends ActionBarActivity {
                     // show error
                     Toast.makeText(UpdateActivity.this, getString(R.string.error_occurred) + exceptionText, Toast.LENGTH_LONG).show();
 
+                    mIsRunning = false;
+
                     // update UI
                     updateUI();
                     break;
@@ -517,6 +542,8 @@ public class UpdateActivity extends ActionBarActivity {
                 case MESSAGE_FINISH:
                     // dismiss dialog
                     if (mDialog != null) mDialog.dismiss();
+
+                    mIsRunning = false;
 
                     // update UI
                     updateUI();

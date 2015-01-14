@@ -62,8 +62,13 @@ public class TwoLineAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public void onBindViewHolder_Item(ViewHolder_Item holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        holder.mTextViewPrimary.setText(mDataset.get(position).mTitle);
-        holder.mTextViewSecondary.setText(mDataset.get(position).mDescription);
+        if (mDataset.get(position).mTitle > 0)
+            holder.mTextViewPrimary.setText(mDataset.get(position).mTitle);
+        else holder.mTextViewPrimary.setText(mDataset.get(position).mTitleStr);
+
+        if (mDataset.get(position).mDescription > 0)
+            holder.mTextViewSecondary.setText(mDataset.get(position).mDescription);
+        else holder.mTextViewSecondary.setText(mDataset.get(position).mDescriptionStr);
 
         if (position == getItemCount() - 1 || mDataset.get(position + 1).mType != ViewType.TYPE_SUBHEADER)
             holder.mRootView.setBackgroundColor(Color.TRANSPARENT);
@@ -81,7 +86,9 @@ public class TwoLineAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     public void onBindViewHolder_Subheader(ViewHolder_Subheader holder, int position) {
-        holder.mTextViewTitle.setText(mDataset.get(position).mTitle);
+        if (mDataset.get(position).mTitle > 0)
+            holder.mTextViewTitle.setText(mDataset.get(position).mTitle);
+        else holder.mTextViewTitle.setText(mDataset.get(position).mTitleStr);
     }
 
     // Replace the contents of a view (invoked by the layout manager)
@@ -147,17 +154,39 @@ public class TwoLineAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     public static class Dataset {
-        public String mTitle;
-        public String mDescription;
         public ViewType mType;
         public int mId;
         public boolean mHidden = false;
+        private int mTitle;
+        private String mTitleStr;
+        private int mDescription;
+        private String mDescriptionStr;
 
-        public Dataset(String title, String description, ViewType type, int id) {
+        public Dataset(int title, int description, ViewType type, int id) {
             mTitle = title;
             mDescription = description;
             mType = type;
             mId = id;
+        }
+
+        public void setTitle(String title) {
+            mTitle = -1;
+            mTitleStr = title;
+        }
+
+        public void setTitle(int title) {
+            mTitle = title;
+            mTitleStr = null;
+        }
+
+        public void setDescription(String description) {
+            mDescription = -1;
+            mDescriptionStr = description;
+        }
+
+        public void setDescription(int description) {
+            mDescription = description;
+            mDescriptionStr = null;
         }
     }
 }

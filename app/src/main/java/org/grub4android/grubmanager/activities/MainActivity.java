@@ -11,6 +11,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.melnykov.fab.FloatingActionButton;
 
@@ -18,6 +19,8 @@ import org.grub4android.grubmanager.R;
 import org.grub4android.grubmanager.RootUtils;
 import org.grub4android.grubmanager.adapter.BootentryAdapter;
 import org.grub4android.grubmanager.models.Bootentry;
+import org.grub4android.grubmanager.models.JSONDeviceInfo;
+import org.grub4android.grubmanager.updater.UpdaterClient;
 
 import java.util.ArrayList;
 
@@ -28,23 +31,38 @@ public class MainActivity extends ActionBarActivity {
     private RecyclerView.LayoutManager mLayoutManager;
     private Button mNotificationButton;
 
+    private JSONDeviceInfo mDeviceInfo = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // init busybox
+        RootUtils.initBusybox(this);
+
+        // toolbar
         setupToolbar();
 
+        // list
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
-
-        // use this setting to improve performance if you know that changes
-        // in content do not change the layout size of the RecyclerView
         mRecyclerView.setHasFixedSize(true);
-
-        // use a linear layout manager
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        // specify an adapter (see also next example)
+        UpdaterClient.getDeviceInfo(this, new UpdaterClient.DeviceInfoReceivedCallback() {
+            @Override
+            public void onDeviceInfoReceived(JSONDeviceInfo deviceInfo, Exception eUC) {
+                mDeviceInfo = deviceInfo;
+
+                if (deviceInfo == null) {
+                    Toast.makeText(MainActivity.this, getString(R.string.error_occurred), Toast.LENGTH_LONG).show();
+                    return;
+                }
+            }
+        });
+
+        // data
         ArrayList<Bootentry> bootentries = new ArrayList<>();
         bootentries.add(new Bootentry("MIUI v5", "Dad's Installation"));
         bootentries.add(new Bootentry("MIUI v6", "Mom's Installation"));
@@ -65,6 +83,7 @@ public class MainActivity extends ActionBarActivity {
         bootentries.add(new Bootentry("OMNI 4.4", "Testing"));
         bootentries.add(new Bootentry("OMNI 5.0", "Testing"));
 
+        // adapter
         mAdapter = new BootentryAdapter(bootentries);
         mRecyclerView.setAdapter(mAdapter);
 
@@ -81,9 +100,6 @@ public class MainActivity extends ActionBarActivity {
                 startActivity(intent);
             }
         });
-
-        // init busybox
-        RootUtils.initBusybox(this);
     }
 
     private void setupToolbar() {
@@ -95,9 +111,7 @@ public class MainActivity extends ActionBarActivity {
                 toolbar,
                 R.string.hello_world, // open
                 R.string.app_name // close
-        )
-
-        {
+        ) {
             public void onDrawerClosed(View view) {
                 super.onDrawerClosed(view);
                 invalidateOptionsMenu();
@@ -116,9 +130,8 @@ public class MainActivity extends ActionBarActivity {
         //Set the custom toolbar
         if (toolbar != null) {
             setSupportActionBar(toolbar);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
-
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         actionBarDrawerToggle.syncState();
     }
