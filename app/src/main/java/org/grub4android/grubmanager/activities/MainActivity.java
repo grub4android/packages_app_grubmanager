@@ -30,8 +30,8 @@ import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity {
+    FloatingActionButton mFab;
     private DrawerLayout mDrawerLayout;
-
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
@@ -39,7 +39,6 @@ public class MainActivity extends ActionBarActivity {
     private Button mNotificationButton;
     private ScrimInsetsFrameLayout mNavigationDrawer;
     private RecyclerView mNavRecyclerView;
-
     private JSONDeviceInfo mDeviceInfo = null;
 
     @Override
@@ -58,18 +57,6 @@ public class MainActivity extends ActionBarActivity {
         mRecyclerView.setHasFixedSize(true);
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
-
-        UpdaterClient.getDeviceInfo(this, new UpdaterClient.DeviceInfoReceivedCallback() {
-            @Override
-            public void onDeviceInfoReceived(JSONDeviceInfo deviceInfo, Exception eUC) {
-                mDeviceInfo = deviceInfo;
-
-                if (deviceInfo == null) {
-                    Toast.makeText(MainActivity.this, getString(R.string.error_occurred), Toast.LENGTH_LONG).show();
-                    return;
-                }
-            }
-        });
 
         // data
         ArrayList<Bootentry> bootentries = new ArrayList<>();
@@ -97,8 +84,8 @@ public class MainActivity extends ActionBarActivity {
         mRecyclerView.setAdapter(mAdapter);
 
         // FAB
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.attachToRecyclerView(mRecyclerView);
+        mFab = (FloatingActionButton) findViewById(R.id.fab);
+        mFab.attachToRecyclerView(mRecyclerView);
 
         // inapp_notification button
         mNotificationBar = findViewById(R.id.inapp_notification);
@@ -171,59 +158,70 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void updateUI() {
-        UpdaterClient.getDeviceList(this, new UpdaterClient.DeviceListReceivedCallback() {
+        UpdaterClient.getDeviceList(this, true, new UpdaterClient.DeviceListReceivedCallback() {
             @Override
             public void onDeviceListReceived(List<String> devices, Exception eUC) {
-                // check for exception
-                if (eUC != null) {
-                    Toast.makeText(MainActivity.this, getString(R.string.error_occurred) + ": " + eUC.getMessage(), Toast.LENGTH_LONG).show();
-                    return;
-                }
+                try {
+                    // check for exception
+                    if (eUC != null) {
+                        Utils.alertError(MainActivity.this, R.string.error_fetch_device_list, eUC);
+                        throw new Exception();
+                    }
 
-                // check device info
-                if (devices == null || !devices.contains(Build.DEVICE)) {
-                    Toast.makeText(MainActivity.this, R.string.device_not_supported, Toast.LENGTH_LONG).show();
+                    // check device info
+                    if (devices == null || !devices.contains(Build.DEVICE)) {
+                        Utils.alert(MainActivity.this, R.string.error_device_not_supported, getString(R.string.error_device_not_supported_msg));
+                        throw new Exception();
+                    }
+
+                    // load deviceinfo
+                    updateUI_loadDeviceInfo();
+                } catch (Exception e) {
                     mRecyclerView.setVisibility(View.GONE);
-                    return;
+                    mFab.setVisibility(View.GONE);
                 }
-                mRecyclerView.setVisibility(View.VISIBLE);
-
-                // load deviceinfo
-                updateUI_loadDeviceInfo();
             }
         });
     }
 
     private void updateUI_loadDeviceInfo() {
-        UpdaterClient.getDeviceInfo(this, new UpdaterClient.DeviceInfoReceivedCallback() {
+        UpdaterClient.getDeviceInfo(this, false, new UpdaterClient.DeviceInfoReceivedCallback() {
             @Override
             public void onDeviceInfoReceived(JSONDeviceInfo deviceInfo, Exception eUC) {
-                // check for exception
-                if (eUC != null) {
-                    Toast.makeText(MainActivity.this, getString(R.string.error_occurred) + ": " + eUC.getMessage(), Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                // check device info
-                mDeviceInfo = deviceInfo;
-                if (deviceInfo == null) {
-                    Toast.makeText(MainActivity.this, getString(R.string.error_occurred), Toast.LENGTH_LONG).show();
-                    return;
-                }
-
                 try {
-                    String bootPath = mDeviceInfo.getAbsoluteBootPath(false);
-                    String manifestPath = bootPath + "/manifest.json";
-
-                    if (RootUtils.exists(manifestPath)) {
-                        mNotificationBar.setVisibility(View.GONE);
-                    } else {
-                        mNotificationBar.setVisibility(View.VISIBLE);
+                    // check for exception
+                    if (eUC != null) {
+                        Utils.alertError(MainActivity.this, R.string.error_fetch_device_info, eUC);
+                        throw new Exception();
                     }
 
+                    // check device info
+                    mDeviceInfo = deviceInfo;
+                    if (deviceInfo == null) {
+                        Utils.alert(MainActivity.this, R.string.error_fetch_device_info, getString(R.string.error_unknown));
+                        throw new Exception();
+                    }
+
+                    try {
+                        String bootPath = mDeviceInfo.getAbsoluteBootPath(false);
+                        String manifestPath = bootPath + "/manifest.json";
+
+                        if (RootUtils.exists(manifestPath)) {
+                            mNotificationBar.setVisibility(View.GONE);
+                        } else {
+                            mNotificationBar.setVisibility(View.VISIBLE);
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, getString(R.string.error_occurred) + "Y: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+
+                    mRecyclerView.setVisibility(View.VISIBLE);
+                    mFab.setVisibility(View.VISIBLE);
                 } catch (Exception e) {
-                    e.printStackTrace();
-                    Toast.makeText(MainActivity.this, getString(R.string.error_occurred) + ": " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    mRecyclerView.setVisibility(View.GONE);
+                    mFab.setVisibility(View.GONE);
                 }
             }
         });

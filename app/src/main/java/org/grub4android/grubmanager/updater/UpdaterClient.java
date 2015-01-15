@@ -32,12 +32,12 @@ public class UpdaterClient {
     // client
     private static AsyncHttpClient client = new AsyncHttpClient();
 
-    public static void clearCache() {
+    public static void clearMemoryCache() {
         mDeviceList = null;
         mDeviceInfo = null;
     }
 
-    public static void getDeviceList(final Context context, final DeviceListReceivedCallback cb) {
+    public static void getDeviceList(final Context context, final boolean useCacheFile, final DeviceListReceivedCallback cb) {
         // we have the data already
         if (mDeviceList != null) {
             if (cb != null) cb.onDeviceListReceived(mDeviceList, null);
@@ -77,13 +77,18 @@ public class UpdaterClient {
                 if (cb != null) cb.onDeviceListReceived(mDeviceList, null);
             }
 
-            private void onAnyError() {
+            private void onAnyError(int statusCode, Header[] headers, Throwable throwable) {
                 // read from disk
                 try {
-                    String data = FileUtils.readFileToString(getCacheFile());
-                    loadJSONArray(new JSONArray(data));
+                    File f = getCacheFile();
+                    if (useCacheFile && f.exists()) {
+                        String data = FileUtils.readFileToString(f);
+                        loadJSONArray(new JSONArray(data));
+                        if (cb != null) cb.onDeviceListReceived(mDeviceList, null);
+                    } else {
+                        if (cb != null) cb.onDeviceListReceived(null, new Exception(throwable));
+                    }
 
-                    if (cb != null) cb.onDeviceListReceived(mDeviceList, null);
                 } catch (Exception e) {
                     e.printStackTrace();
 
@@ -94,22 +99,22 @@ public class UpdaterClient {
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
-                onAnyError();
+                onAnyError(statusCode, headers, throwable);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONArray errorResponse) {
-                onAnyError();
+                onAnyError(statusCode, headers, throwable);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-                onAnyError();
+                onAnyError(statusCode, headers, throwable);
             }
         });
     }
 
-    public static void getDeviceInfo(final Context context, final DeviceInfoReceivedCallback cb) {
+    public static void getDeviceInfo(final Context context, final boolean reportCacheAsError, final DeviceInfoReceivedCallback cb) {
         // we have the data already
         if (mDeviceInfo != null) {
             if (cb != null) cb.onDeviceInfoReceived(mDeviceInfo, null);
@@ -138,13 +143,18 @@ public class UpdaterClient {
                 if (cb != null) cb.onDeviceInfoReceived(mDeviceInfo, null);
             }
 
-            private void onAnyError() {
+            private void onAnyError(int statusCode, Header[] headers, Throwable throwable) {
                 // read from disk
                 try {
-                    String data = FileUtils.readFileToString(getCacheFile());
-                    mDeviceInfo = new JSONDeviceInfo(new JSONObject(data));
-
-                    if (cb != null) cb.onDeviceInfoReceived(mDeviceInfo, null);
+                    Exception reportException = reportCacheAsError ? new Exception(throwable) : null;
+                    File f = getCacheFile();
+                    if (f.exists()) {
+                        String data = FileUtils.readFileToString(getCacheFile());
+                        mDeviceInfo = new JSONDeviceInfo(new JSONObject(data));
+                        if (cb != null) cb.onDeviceInfoReceived(mDeviceInfo, reportException);
+                    } else {
+                        if (cb != null) cb.onDeviceInfoReceived(null, reportException);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
 
@@ -155,17 +165,17 @@ public class UpdaterClient {
 
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-                onAnyError();
+                onAnyError(statusCode, headers, throwable);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
-                onAnyError();
+                onAnyError(statusCode, headers, throwable);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONArray errorResponse) {
-                onAnyError();
+                onAnyError(statusCode, headers, throwable);
             }
         });
     }

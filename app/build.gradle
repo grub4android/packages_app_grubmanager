@@ -46,4 +46,6 @@ dependencies {
     compile 'com.loopj.android:android-async-http:1.4.5'
     compile "commons-io:commons-io:+"
     compile "commons-codec:commons-codec:+"
+    compile "commons-lang:commons-lang:+"
+    compile 'com.afollestad:material-dialogs:0.6.0'
 }
