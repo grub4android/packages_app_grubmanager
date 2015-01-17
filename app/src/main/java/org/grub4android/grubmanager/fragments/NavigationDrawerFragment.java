@@ -156,10 +156,7 @@ public class NavigationDrawerFragment extends Fragment {
 
                 getActivity().supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu()
 
-                Fragment f = ((MainActivity) getActivity()).getActiveFragment();
-                if (f instanceof DrawerFragmentListener) {
-                    ((DrawerFragmentListener) f).onDrawerClosed(drawerView);
-                }
+                ((MainActivity) getActivity()).startFragmentTransition();
             }
 
             @Override
@@ -179,11 +176,6 @@ public class NavigationDrawerFragment extends Fragment {
                 }
 
                 getActivity().supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu()
-
-                Fragment f = ((MainActivity) getActivity()).getActiveFragment();
-                if (f instanceof DrawerFragmentListener) {
-                    ((DrawerFragmentListener) f).onDrawerOpened(drawerView);
-                }
             }
         };
 

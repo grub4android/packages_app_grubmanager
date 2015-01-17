@@ -30,6 +30,7 @@ public class MainActivity extends ActionBarActivity
     private NavigationDrawerFragment mNavigationDrawerFragment;
 
     private Toolbar mToolbar;
+    private BaseFragment mNextFragment = null;
     private BaseFragment mActiveFragment = null;
 
     @Override
@@ -88,6 +89,17 @@ public class MainActivity extends ActionBarActivity
         return mActiveFragment;
     }
 
+    public void startFragmentTransition() {
+        if (mNextFragment != null) {
+            // move next to active fragment
+            mActiveFragment = mNextFragment;
+            mNextFragment = null;
+
+            // init
+            mActiveFragment.init(this);
+        }
+    }
+
     @Override
     public void onNavigationDrawerItemSelected(int position) {
         // create fragment
@@ -102,10 +114,12 @@ public class MainActivity extends ActionBarActivity
             f = new SettingsFragment();
         else return;
 
-        f.init(this);
+        // store next fragment
+        mNextFragment = f;
 
-        // store active fragment
-        mActiveFragment = f;
+        if (mActiveFragment == null) {
+            startFragmentTransition();
+        }
 
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getSupportFragmentManager();

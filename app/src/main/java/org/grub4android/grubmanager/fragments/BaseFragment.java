@@ -35,7 +35,6 @@ public class BaseFragment extends Fragment {
     /**
      * synchronized flags
      */
-    private final Pointer<Boolean> mFragmentInitialized = new Pointer<>(false);
     private final Pointer<Boolean> mDataReceived = new Pointer<>(false);
 
     private Boolean mRequiresData = true;
@@ -55,6 +54,7 @@ public class BaseFragment extends Fragment {
             fetchData(dialog, STAGE_DEVICE_LIST);
         } else {
             mDataReceived.val = true;
+            runDataCallback();
         }
     }
 
@@ -81,7 +81,7 @@ public class BaseFragment extends Fragment {
                 dialog.dismiss();
                 synchronized (mDataReceived) {
                     mDataReceived.val = true;
-                    runDataCallback(true);
+                    runDataCallback();
                 }
                 break;
         }
@@ -187,13 +187,9 @@ public class BaseFragment extends Fragment {
         }
     }
 
-    private void runDataCallback(boolean force) {
-        // check if we need to init
-        synchronized (mFragmentInitialized) {
-            if (!mFragmentInitialized.val || force) {
-                onDataReceived();
-                mFragmentInitialized.val = true;
-            }
+    private void runDataCallback() {
+        if (isResumed()) {
+            onDataReceived();
         }
     }
 
@@ -202,7 +198,7 @@ public class BaseFragment extends Fragment {
         super.onResume();
         // check if we can init already
         synchronized (mDataReceived) {
-            if (mDataReceived.val) runDataCallback(false);
+            if (mDataReceived.val) runDataCallback();
         }
     }
 
