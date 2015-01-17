@@ -8,5 +8,5 @@
     android:paddingBottom="8dp"
     android:scrollbarStyle="outsideOverlay"
     android:scrollbars="vertical"
-    tools:context="org.grub4android.grubmanager.fragments.navigation.BootloaderSetupFragmentBackup" />
+    tools:context="org.grub4android.grubmanager.fragments.navigation.BootloaderSetupFragment" />
 
