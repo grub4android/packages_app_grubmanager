@@ -120,15 +120,6 @@ public class BootloaderSetupFragment extends BaseFragment {
         // toolbar2
         mToolbarSubtitile2.setText(Build.MANUFACTURER + " " + Build.MODEL + " (" + Build.DEVICE + ")");
 
-        // FAB
-        FloatingActionButton fab = (FloatingActionButton) getActivity().findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                fetchFromServer();
-            }
-        });
-
         return rootView;
     }
 
@@ -230,11 +221,24 @@ public class BootloaderSetupFragment extends BaseFragment {
         // show toolbar content
         mToolbarContent = ((MainActivity) getActivity()).getToolbar().findViewById(R.id.toolbar_bootloader_setup);
         mToolbarContent.setVisibility(View.VISIBLE);
+
+        // FAB
+        FloatingActionButton fab = (FloatingActionButton) getActivity().findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                fetchFromServer();
+            }
+        });
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
+
+        // FAB
+        FloatingActionButton fab = (FloatingActionButton) getActivity().findViewById(R.id.fab);
+        fab.setOnClickListener(null);
 
         // hide toolbar content
         mToolbarContent.setVisibility(View.GONE);
