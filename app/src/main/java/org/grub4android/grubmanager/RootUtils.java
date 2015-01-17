@@ -19,6 +19,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 public class RootUtils {
@@ -184,9 +185,9 @@ public class RootUtils {
     }
 
     public static String copyToCache(Context context, String filename) throws Exception {
-        String cachFile = context.getCacheDir() + "/copycache__" + FilenameUtils.getName(filename);
-        copyToCache(filename, cachFile);
-        return cachFile;
+        String cacheFile = context.getCacheDir() + "/copycache__" + FilenameUtils.getName(filename);
+        copyToCache(filename, cacheFile);
+        return cacheFile;
     }
 
     public static int[] getBootloaderPartMajorMinor(String name) {
@@ -355,6 +356,37 @@ public class RootUtils {
             }
         };
         return RootTools.getShell(true).add(cmd);
+    }
+
+    public static Command findMultibootInstallations(String directory, final MBInstallationsReceived cb) throws Exception {
+        final List<String> results = new ArrayList<>();
+
+        Command cmd = new Command(0, false,
+                BUSYBOX + " find \"" + directory + "\" -name multiboot.cfg 2>/dev/null"
+        ) {
+            @Override
+            public void commandCompleted(int id, int exitcode) {
+                super.commandCompleted(id, exitcode);
+                if (cb != null) cb.onMBInstallationsReceived(exitcode, results);
+            }
+
+            @Override
+            public void commandTerminated(int id, String reason) {
+                super.commandTerminated(id, reason);
+                if (cb != null) cb.onMBInstallationsReceived(-1, null);
+            }
+
+            @Override
+            public void commandOutput(int id, String line) {
+                super.commandOutput(id, line);
+                results.add(line);
+            }
+        };
+        return RootTools.getShell(true).add(cmd);
+    }
+
+    public static interface MBInstallationsReceived {
+        public abstract void onMBInstallationsReceived(int exitcode, List<String> results);
     }
 
     public static interface CommandFinished {

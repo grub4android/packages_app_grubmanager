@@ -1,5 +1,6 @@
 package org.grub4android.grubmanager.updater;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Build;
 
@@ -26,156 +27,225 @@ public class UpdaterClient {
     private static final String URL_DEVICES = URL_BASE + "devices.json";
     private static final String URL_DEVICE_INFO = URL_BASE + "devices/" + Build.DEVICE + "/manifest.json";
     private static final String URL_BUILDS = URL_BASE + "devices/" + Build.DEVICE + "/builds";
+    // files
+    private static final String FILE_DEVICES = "devices.json";
+    private static final String FILE_DEVICE_INFO = "device_info.json";
     // members
     public static ArrayList<String> mDeviceList = null;
     private static JSONDeviceInfo mDeviceInfo = null;
     // client
     private static AsyncHttpClient client = new AsyncHttpClient();
 
-    public static void clearMemoryCache() {
-        mDeviceList = null;
-        mDeviceInfo = null;
+    private static ArrayList<String> getDeviceListFromJSON(JSONArray json) {
+        ArrayList<String> tmp = new ArrayList<>();
+        for (int i = 0; i < json.length(); i++) {
+            try {
+                tmp.add(json.getString(i));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return tmp;
     }
 
-    public static void getDeviceList(final Context context, final boolean useCacheFile, final DeviceListReceivedCallback cb) {
-        // we have the data already
-        if (mDeviceList != null) {
-            if (cb != null) cb.onDeviceListReceived(mDeviceList, null);
-            return;
+    private static File getCacheFile(Context context, String filename) {
+        return new File(context.getCacheDir(), filename);
+    }
+
+    public static void getDeviceListCached(final Activity activity, final DeviceListListener cb) {
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    if (mDeviceList == null) {
+                        File f = getCacheFile(activity, FILE_DEVICES);
+                        String data = FileUtils.readFileToString(f);
+                        mDeviceList = getDeviceListFromJSON(new JSONArray(data));
+                    }
+
+                    // run callback
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            cb.onDeviceListReceived(mDeviceList, true);
+                        }
+                    });
+                } catch (final Exception e) {
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            cb.onError(e);
+                        }
+                    });
+                }
+            }
+        }.start();
+    }
+
+    public static RequestHandle getDeviceList(final Activity activity, boolean tryCache, final DeviceListListener cb) {
+        // try cache first
+        if (tryCache) {
+            getDeviceListCached(activity, new DeviceListListener() {
+                @Override
+                public void onDeviceListReceived(List<String> devices, boolean fromCache) {
+                    cb.onDeviceListReceived(devices, true);
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    getDeviceList(activity, false, cb);
+                }
+            });
+            return null;
         }
 
         // fetch from server
-        client.get(URL_DEVICES, new JsonHttpResponseHandler() {
-
-            private File getCacheFile() {
-                return new File(context.getCacheDir(), "devices.json");
-            }
-
-            private void loadJSONArray(JSONArray json) {
-                mDeviceList = new ArrayList<>();
-                for (int i = 0; i < json.length(); i++) {
-                    try {
-                        mDeviceList.add(json.getString(i));
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
+        return client.get(URL_DEVICES, new JsonHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONArray response) {
-                // cache in memory
-                loadJSONArray(response);
+                // load to memory
+                mDeviceList = getDeviceListFromJSON(response);
 
-                // cache on disk
+                // write to disk
                 try {
-                    FileUtils.writeStringToFile(getCacheFile(), response.toString());
+                    FileUtils.writeStringToFile(getCacheFile(activity, FILE_DEVICES), response.toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
-                if (cb != null) cb.onDeviceListReceived(mDeviceList, null);
+                // run callback
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        cb.onDeviceListReceived(mDeviceList, false);
+                    }
+                });
             }
 
-            private void onAnyError(int statusCode, Header[] headers, Throwable throwable) {
-                // read from disk
-                try {
-                    File f = getCacheFile();
-                    if (useCacheFile && f.exists()) {
-                        String data = FileUtils.readFileToString(f);
-                        loadJSONArray(new JSONArray(data));
-                        if (cb != null) cb.onDeviceListReceived(mDeviceList, null);
-                    } else {
-                        if (cb != null) cb.onDeviceListReceived(null, new Exception(throwable));
+            private void onAnyError(final Throwable throwable) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        cb.onError(new Exception(throwable));
                     }
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-
-                    // an error occurred
-                    if (cb != null) cb.onDeviceListReceived(null, e);
-                }
+                });
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
-                onAnyError(statusCode, headers, throwable);
+                onAnyError(throwable);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONArray errorResponse) {
-                onAnyError(statusCode, headers, throwable);
+                onAnyError(throwable);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-                onAnyError(statusCode, headers, throwable);
+                onAnyError(throwable);
             }
         });
     }
 
-    public static void getDeviceInfo(final Context context, final boolean reportCacheAsError, final DeviceInfoReceivedCallback cb) {
-        // we have the data already
-        if (mDeviceInfo != null) {
-            if (cb != null) cb.onDeviceInfoReceived(mDeviceInfo, null);
-            return;
+    public static void getDeviceInfoCached(final Activity activity, final DeviceInfoListener cb) {
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    if (mDeviceInfo == null) {
+                        File f = getCacheFile(activity, FILE_DEVICE_INFO);
+                        String data = FileUtils.readFileToString(f);
+                        mDeviceInfo = new JSONDeviceInfo(new JSONObject(data));
+                    }
+
+                    // run callback
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            cb.onDeviceInfoReceived(mDeviceInfo, true);
+                        }
+                    });
+                } catch (final Exception e) {
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            cb.onError(e);
+                        }
+                    });
+                }
+            }
+        }.start();
+    }
+
+    public static RequestHandle getDeviceInfo(final Activity activity, final boolean tryCache, final DeviceInfoListener cb) {
+        // try cache first
+        if (tryCache) {
+            getDeviceInfoCached(activity, new DeviceInfoListener() {
+                @Override
+                public void onDeviceInfoReceived(JSONDeviceInfo deviceInfo, boolean fromCache) {
+                    cb.onDeviceInfoReceived(deviceInfo, true);
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    getDeviceInfo(activity, false, cb);
+                }
+            });
+            return null;
         }
 
         // fetch from server
-        client.get(URL_DEVICE_INFO, new JsonHttpResponseHandler() {
-
-            private File getCacheFile() {
-                return new File(context.getCacheDir(), "device_info.json");
-            }
+        return client.get(URL_DEVICE_INFO, new JsonHttpResponseHandler() {
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-                // cache in memory
-                mDeviceInfo = new JSONDeviceInfo(response);
-
-                // cache on disk
+                // load to memory
                 try {
-                    FileUtils.writeStringToFile(getCacheFile(), response.toString());
+                    mDeviceInfo = new JSONDeviceInfo(response);
+                } catch (JSONException e) {
+                    onAnyError(new Throwable(e));
+                    return;
+                }
+
+                // write to disk
+                try {
+                    FileUtils.writeStringToFile(getCacheFile(activity, FILE_DEVICE_INFO), response.toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
-                if (cb != null) cb.onDeviceInfoReceived(mDeviceInfo, null);
+                // run callback
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        cb.onDeviceInfoReceived(mDeviceInfo, false);
+                    }
+                });
             }
 
-            private void onAnyError(int statusCode, Header[] headers, Throwable throwable) {
-                // read from disk
-                try {
-                    Exception reportException = reportCacheAsError ? new Exception(throwable) : null;
-                    File f = getCacheFile();
-                    if (f.exists()) {
-                        String data = FileUtils.readFileToString(getCacheFile());
-                        mDeviceInfo = new JSONDeviceInfo(new JSONObject(data));
-                        if (cb != null) cb.onDeviceInfoReceived(mDeviceInfo, reportException);
-                    } else {
-                        if (cb != null) cb.onDeviceInfoReceived(null, reportException);
+            private void onAnyError(final Throwable throwable) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        cb.onError(new Exception(throwable));
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-
-                    // an error occurred
-                    if (cb != null) cb.onDeviceInfoReceived(null, e);
-                }
+                });
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-                onAnyError(statusCode, headers, throwable);
+                onAnyError(throwable);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
-                onAnyError(statusCode, headers, throwable);
+                onAnyError(throwable);
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONArray errorResponse) {
-                onAnyError(statusCode, headers, throwable);
+                onAnyError(throwable);
             }
         });
     }
@@ -185,11 +255,15 @@ public class UpdaterClient {
         return client.get(URL_BUILDS + "/" + name, handler);
     }
 
-    public static interface DeviceInfoReceivedCallback {
-        public abstract void onDeviceInfoReceived(JSONDeviceInfo deviceInfo, Exception e);
+    public static interface DeviceInfoListener {
+        public abstract void onDeviceInfoReceived(JSONDeviceInfo deviceInfo, boolean fromCache);
+
+        public abstract void onError(Exception e);
     }
 
-    public static interface DeviceListReceivedCallback {
-        public abstract void onDeviceListReceived(List<String> devices, Exception e);
+    public static interface DeviceListListener {
+        public abstract void onDeviceListReceived(List<String> devices, boolean fromCache);
+
+        public abstract void onError(Exception e);
     }
 }

@@ -48,4 +48,5 @@ dependencies {
     compile "commons-codec:commons-codec:+"
     compile "commons-lang:commons-lang:+"
     compile 'com.afollestad:material-dialogs:0.6.0'
+    compile 'org.ini4j:ini4j:+'
 }

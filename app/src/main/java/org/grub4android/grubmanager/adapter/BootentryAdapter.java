@@ -12,7 +12,7 @@ import org.grub4android.grubmanager.models.Bootentry;
 import java.util.List;
 
 public class BootentryAdapter extends RecyclerView.Adapter<BootentryAdapter.ViewHolder> {
-    private List<Bootentry> mDataset;
+    public List<Bootentry> mDataset;
 
     // Provide a suitable constructor (depends on the kind of dataset)
     public BootentryAdapter(List<Bootentry> myDataset) {

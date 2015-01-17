@@ -13,6 +13,7 @@ import com.afollestad.materialdialogs.MaterialDialog;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.ini4j.spi.EscapeTool;
 
 import java.io.File;
 import java.io.IOException;
@@ -93,6 +94,22 @@ public class Utils {
         builder.show();
     }
 
+    public static void alertRetry(final Context context, final int title, String message, boolean cancelable, MaterialDialog.ButtonCallback cb) {
+        MaterialDialog.Builder builder = new MaterialDialog.Builder(context);
+        builder.accentColor(context.getResources().getColor(R.color.material_green));
+        builder.title(title);
+        builder.content(message);
+        builder.positiveText(R.string.retry);
+        builder.cancelable(cancelable);
+        builder.callback(cb);
+
+        if (cancelable) {
+            builder.negativeText(android.R.string.cancel);
+        }
+
+        builder.show();
+    }
+
     public static boolean isNetworkAvailable(Context context) {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -100,4 +117,9 @@ public class Utils {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
+    public static String unquote(String s) {
+        if (s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"')
+            return EscapeTool.getInstance().unquote(s);
+        else return s;
+    }
 }

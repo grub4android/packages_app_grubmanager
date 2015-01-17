@@ -1,46 +1,31 @@
+<!-- A DrawerLayout is intended to be used as the top-level content view using match_parent for both width and height to consume the full space available. -->
 <android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:fab="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/drawer"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".MainActivity">
+    tools:context="org.grub4android.grubmanager.activities.MainActivity2">
 
-    <!-- The main content view -->
     <FrameLayout
-        android:id="@+id/content_frame"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
-
             <!-- TOOLBAR -->
             <include
                 android:id="@+id/toolbar"
                 layout="@layout/toolbar_custom" />
-            <!-- NOTIFICATION -->
-            <include
-                android:id="@+id/inapp_notification"
-                layout="@layout/inapp_notification"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:layout_below="@id/toolbar" />
-            <!-- LIST -->
-            <android.support.v7.widget.RecyclerView
-                android:id="@+id/my_recycler_view"
+            <!-- As the main content view, the view below consumes the entire
+                 space available using match_parent in both dimensions. -->
+            <FrameLayout
+                android:id="@+id/container"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@id/inapp_notification"
-                android:clipToPadding="false"
-                android:paddingBottom="8dp"
-                android:paddingTop="8dp"
-                android:scrollbarStyle="outsideOverlay"
-                android:scrollbars="vertical" />
-
+                android:layout_below="@id/toolbar"></FrameLayout>
         </RelativeLayout>
 
         <!-- FAB -->
@@ -50,33 +35,37 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|right"
             android:layout_margin="16dp"
+            android:animateLayoutChanges="true"
             android:src="@drawable/ic_add_white_24dp"
             fab:fab_colorNormal="@color/primary"
             fab:fab_colorPressed="@color/primary_dark"
             fab:fab_colorRipple="@color/primary_dark" />
     </FrameLayout>
 
+    <!-- android:layout_gravity="start" tells DrawerLayout to treat
+         this as a sliding drawer on the left side for left-to-right
+         languages and on the right side for right-to-left languages.
+         If you're not building against API 17 or higher, use
+         android:layout_gravity="left" instead. -->
+    <!-- The drawer is given a fixed width in dp and extends the full height of
+         the container. -->
+
     <!-- The navigation drawer -->
     <org.grub4android.grubmanager.widget.ScrimInsetsFrameLayout xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/left_drawer"
-        android:layout_width="240dp"
+        android:id="@+id/scrimInsetsFrameLayout"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_gravity="left|start"
+        android:layout_gravity="start"
         android:background="@android:color/white"
-        android:choiceMode="singleChoice"
-        android:divider="@android:color/transparent"
-        android:dividerHeight="0dp"
-        android:elevation="10dp"
         android:fitsSystemWindows="true"
         app:insetForeground="#4000">
 
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/navbar_recycler_view"
-            android:layout_width="match_parent"
+        <fragment
+            android:id="@+id/navigation_drawer"
+            android:name="org.grub4android.grubmanager.fragments.NavigationDrawerFragment"
+            android:layout_width="@dimen/navigation_drawer_width"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:scrollbarStyle="outsideOverlay"
-            android:scrollbars="vertical" />
+            android:layout_gravity="start"
+            tools:layout="@layout/fragment_navigation_drawer" />
     </org.grub4android.grubmanager.widget.ScrimInsetsFrameLayout>
-
 </android.support.v4.widget.DrawerLayout>

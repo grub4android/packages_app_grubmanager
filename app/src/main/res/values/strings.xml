@@ -1,45 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- MainActivity -->
+    <!-- common -->
     <string name="app_name">GRUBManager</string>
     <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
     <string name="report">Report</string>
-
+    <string name="retry">Retry</string>
     <string name="navbar_bootloader">Bootloader-Setup</string>
-
     <string name="error_unknown">Unknown error</string>
     <string name="error_fetch_device_list">Couldn\'t fetch device list</string>
     <string name="error_fetch_device_info">Couldn\'t fetch device info</string>
     <string name="error_parse_device_info">Couldn\'t parse device info</string>
     <string name="error_device_not_supported">Your device is not supported!</string>
     <string name="error_device_not_supported_msg">You can ask the developers to add support though ;)</string>
-
     <string name="message_sure">Are you sure?</string>
 
-    <!-- UpdateActivity -->
-    <string name="title_activity_update">UpdateActivity</string>
-
+    <!-- BootloaderSetup -->
     <string name="setup">Setup</string>
     <string name="system_info">System info</string>
-
     <string name="install">Install</string>
     <string name="reinstall">Reinstall</string>
     <string name="update">Update</string>
-
     <string name="changelog">Changelog</string>
     <string name="changelog_description">See what\'s new in this version</string>
-
     <string name="uninstall">Uninstall</string>
     <string name="uninstall_description">Revert to original bootloader</string>
-
     <string name="grub">GRUB</string>
     <string name="lk">LK</string>
     <string name="multiboot">Multiboot</string>
-
     <string name="loading">Loading...</string>
     <string name="error_occurred">An error occurred!</string>
     <string name="not_installed">Not installed!</string>
+
+    <!-- Navigation Drawer -->
+    <string name="title_operating_systems">Operating Systems</string>
+    <string name="title_recovery_tools">Recovery Tools</string>
+    <string name="title_bootloader_setup">Bootloader-Setup</string>
+    <string name="title_settings">Settings</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 
 </resources>
